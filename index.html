@@ -68,7 +68,6 @@
             transform: scale(0.98);
         }
 
-        /* Bereich für das geheime Key-Feld */
         .key-safe-box {
             margin-top: 30px;
             border-top: 1px dashed #444;
@@ -112,30 +111,29 @@
         const antwortBox = document.getElementById('antwort-box');
         const keyInput = document.getElementById('key-input');
 
-        // Beim Laden der Seite schauen, ob schon ein Key auf dem Handy gespeichert ist
         window.onload = function() {
             const gespeicherterKey = localStorage.getItem('mein_groq_key');
             if (gespeicherterKey) {
-                keyInput.value = gespeicherterKey;
+                keyInput.value = gespeicherterKey.trim();
             }
         };
 
-        // Speichert den Key lokal im Browser deines Handys
+        // Bereinigt den Key beim Speichern direkt von Leerzeichen
         function speichereKey() {
-            localStorage.setItem('mein_groq_key', keyInput.value);
+            localStorage.setItem('mein_groq_key', keyInput.value.trim());
         }
 
         async function sendeAnfrage(event) {
             event.preventDefault(); 
             
-            // Wir holen den Key direkt aus dem Eingabefeld bzw. Handy-Speicher
-            const JEMALS_SICHERER_KEY = localStorage.getItem('mein_groq_key');
+            let gespeicherterKey = localStorage.getItem('mein_groq_key');
 
-            if (!JEMALS_SICHERER_KEY || JEMALS_SICHERER_KEY.trim() === "") {
+            if (!gespeicherterKey || gespeicherterKey.trim() === "") {
                 antwortBox.innerText = "Bitte trage zuerst unten deinen Groq API-Key ein!";
                 return;
             }
 
+            const saubererKey = gespeicherterKey.trim();
             const frage = frageInput.value;
             if(!frage) return;
 
@@ -146,20 +144,19 @@
                 const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
                     method: "POST",
                     headers: {
-                        "Authorization": "Bearer " + JEMALS_SICHERER_KEY.trim(),
+                        "Authorization": `Bearer ${saubererKey}`,
                         "Content-Type": "application/json"
                     },
                     body: JSON.stringify({
                         model: "llama3-8b-8192", 
                         messages: [
-                            { role: "system", content: "Du bist ein hilfreicher KI-Agent. Antworte kurz auf Deutsch." },
                             { role: "user", content: frage }
                         ]
                     })
                 });
 
                 if (!response.ok) {
-                    throw new Error("Fehler-Code: " + response.status + " (Key eventuell abgelaufen?)");
+                    throw new Error("Fehler-Code: " + response.status);
                 }
 
                 const daten = await response.json();
@@ -167,7 +164,7 @@
 
             } catch (fehler) {
                 console.error(fehler);
-                antwortBox.innerText = "Fehler: " + fehler.message;
+                antwortBox.innerText = "Fehler: " + fehler.message + "\n\nTipp: Lösche den Key unten einmal komplett, lade die Seite neu und füge ihn frisch ein.";
             }
         }
     </script>
