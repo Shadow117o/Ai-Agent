@@ -67,6 +67,28 @@
         button:active {
             transform: scale(0.98);
         }
+
+        /* Bereich für das geheime Key-Feld */
+        .key-safe-box {
+            margin-top: 30px;
+            border-top: 1px dashed #444;
+            padding-top: 15px;
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+        .key-safe-box label {
+            font-size: 12px;
+            color: #888;
+            display: block;
+            margin-bottom: 5px;
+        }
+        .key-safe-box input {
+            font-size: 12px;
+            padding: 8px;
+            background-color: #1a1a1a;
+            border: 1px solid #333;
+        }
     </style>
 </head>
 <body>
@@ -80,16 +102,40 @@
         <button type="submit" id="sende-btn">An KI senden</button>
     </form>
 
-    <script>
-        // TRAGE HIER DEINEN AKTUELLEN GROQ-KEY EIN
-        const API_KEY = "HIER_KEY_EINFUEGEN";
+    <div class="key-safe-box">
+        <label for="key-input">🔑 Deinen Groq API-Key hier sicher sichern:</label>
+        <input type="password" id="key-input" placeholder="gsk_..." onchange="speichereKey()">
+    </div>
 
+    <script>
         const frageInput = document.getElementById('frage-input');
         const antwortBox = document.getElementById('antwort-box');
+        const keyInput = document.getElementById('key-input');
+
+        // Beim Laden der Seite schauen, ob schon ein Key auf dem Handy gespeichert ist
+        window.onload = function() {
+            const gespeicherterKey = localStorage.getItem('mein_groq_key');
+            if (gespeicherterKey) {
+                keyInput.value = gespeicherterKey;
+            }
+        };
+
+        // Speichert den Key lokal im Browser deines Handys
+        function speichereKey() {
+            localStorage.setItem('mein_groq_key', keyInput.value);
+        }
 
         async function sendeAnfrage(event) {
             event.preventDefault(); 
             
+            // Wir holen den Key direkt aus dem Eingabefeld bzw. Handy-Speicher
+            const JEMALS_SICHERER_KEY = localStorage.getItem('mein_groq_key');
+
+            if (!JEMALS_SICHERER_KEY || JEMALS_SICHERER_KEY.trim() === "") {
+                antwortBox.innerText = "Bitte trage zuerst unten deinen Groq API-Key ein!";
+                return;
+            }
+
             const frage = frageInput.value;
             if(!frage) return;
 
@@ -97,11 +143,10 @@
             frageInput.value = ""; 
 
             try {
-                // Direkte, blitzschnelle Verbindung zu Groq
                 const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
                     method: "POST",
                     headers: {
-                        "Authorization": "Bearer " + API_KEY,
+                        "Authorization": "Bearer " + JEMALS_SICHERER_KEY.trim(),
                         "Content-Type": "application/json"
                     },
                     body: JSON.stringify({
@@ -114,7 +159,7 @@
                 });
 
                 if (!response.ok) {
-                    throw new Error("Fehler-Code: " + response.status);
+                    throw new Error("Fehler-Code: " + response.status + " (Key eventuell abgelaufen?)");
                 }
 
                 const daten = await response.json();
