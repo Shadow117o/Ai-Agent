@@ -118,7 +118,6 @@
             }
         };
 
-        // Bereinigt den Key beim Speichern direkt von Leerzeichen
         function speichereKey() {
             localStorage.setItem('mein_groq_key', keyInput.value.trim());
         }
@@ -150,13 +149,17 @@
                     body: JSON.stringify({
                         model: "llama3-8b-8192", 
                         messages: [
+                            { role: "system", content: "Du bist ein hilfreicher KI-Agent. Antworte kurz auf Deutsch." },
                             { role: "user", content: frage }
                         ]
                     })
                 });
 
+                // Wenn etwas schiefgeht, holen wir uns die genaue Begründung vom Server
                 if (!response.ok) {
-                    throw new Error("Fehler-Code: " + response.status);
+                    const fehlerDaten = await response.json().catch(() => ({}));
+                    const serverNachricht = fehlerDaten.error ? fehlerDaten.error.message : "Unbekannter Fehler";
+                    throw new Error("Status " + response.status + ": " + serverNachricht);
                 }
 
                 const daten = await response.json();
@@ -164,7 +167,7 @@
 
             } catch (fehler) {
                 console.error(fehler);
-                antwortBox.innerText = "Fehler: " + fehler.message + "\n\nTipp: Lösche den Key unten einmal komplett, lade die Seite neu und füge ihn frisch ein.";
+                antwortBox.innerText = "Fehler: " + fehler.message;
             }
         }
     </script>
